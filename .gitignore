@@ -17,3 +17,5 @@ chroma_data/
 
 tmp/
 videos/
+
+.DS_Store
