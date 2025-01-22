@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# chromadb
+chromadb/
+chroma.log
+chroma_data/
+*.mp4
+
+tmp/
+videos/
