@@ -104,41 +104,69 @@ class FFmpeg:
         self,
         nth_frame: int = 120,
         output_format: str = "jpg",
-    ) -> list[str]:
+    ) -> list[Tuple[str, float]]:
         """
         Extract frames from video at an interval. Store in temp directory.
 
         Args:
-            input_path: Path to input video
-            file_hash: Unique hash for the input video
-            nth_frame: Extract every Nth frame (default: 1 = every frame)
+            nth_frame: Extract every Nth frame (default: 120)
             output_format: Output image format (default: jpg)
 
         Returns:
-            Path to directory containing extracted frames
+            List of tuples containing (frame_path, timestamp_in_seconds)
         """
-        # Create unique output directory for frames
         output_dir = self._get_frames_dir(sub_dir="interval")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Construct output pattern for frames
-        output_pattern = str(output_dir / f"interval_%d.{output_format}")
-
-        self.logger.info(f"Extracting frames to {output_dir}.")
+        output_pattern = str(output_dir / f"frame_%08d.{output_format}")
 
         args = [
             "-vf",
             f"select=not(mod(n\\,{nth_frame}))",
+            "-vsync",
+            "0",
             "-frame_pts",
             "1",
-            "-fps_mode",
-            "vfr",
         ]
 
-        self._run_command(args, self.input_path, output_pattern)
+        try:
+            self._run_command(args, self.input_path, output_pattern)
+        except Exception as e:
+            raise RuntimeError(f"Frame extraction failed: {str(e)}")
 
-        # returns list of absolute file paths of extracted frames
-        return get_filenames_of_dir(output_dir)
+        frames = []
+        for frame_path in sorted(get_filenames_of_dir(output_dir)):
+            # Get frame number from filename
+            frame_num = int(Path(frame_path).stem.split("_")[1])
+            # Calculate actual frame number in original video
+            actual_frame = frame_num * nth_frame
+            # Convert to timestamp using video's FPS
+            timestamp = actual_frame / self._get_video_fps()
+            frames.append((str(frame_path), timestamp))
+
+        return frames
+
+    def _get_video_fps(self) -> float:
+        """Get video FPS using ffprobe."""
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=r_frame_rate",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(self.input_path),
+        ]
+
+        try:
+            output = subprocess.check_output(cmd).decode().strip()
+            num, den = map(int, output.split("/"))
+            return num / den
+        except Exception as e:
+            raise RuntimeError(f"Failed to get video FPS: {str(e)}")
 
     def extract_frames_timestamps(
         self,

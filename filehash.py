@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 @cache
-def get_file_hash(filename: str | Path, algorithm="sha256", chunk_size=8192):
+def get_file_hash(filename: str | Path, algorithm="md5", chunk_size=8192):
     """Calculate the hash of a file using the specified algorithm.
 
     Example usage:
@@ -12,7 +12,7 @@ def get_file_hash(filename: str | Path, algorithm="sha256", chunk_size=8192):
 
     Args:
         filename (str): Path to the file
-        algorithm (str): Hash algorithm to use (default: sha256)
+        algorithm (str): Hash algorithm to use (default: md5)
         chunk_size (int): Size of chunks to read (default: 8192 bytes)
 
     Returns:
@@ -24,4 +24,5 @@ def get_file_hash(filename: str | Path, algorithm="sha256", chunk_size=8192):
         while chunk := f.read(chunk_size):
             hash_obj.update(chunk)
 
+    # MD5 produces a 32-character hexadecimal number
     return hash_obj.hexdigest()
