@@ -1,5 +1,6 @@
 import argparse
 import time
+from typing import Tuple
 import warnings
 from pprint import pp
 
@@ -64,23 +65,15 @@ def extract_frames_intv(
         raise
 
 
-def caption_frames(florence: Florence, collection: Collection, ts_frames_paths: str):
+def caption_frames(
+    florence: Florence, collection: Collection, ts_frames_paths: list[Tuple[str, float]]
+):
     """Get captions for frames"""
     caption_texts = []
     try:
         logger.info("Generating captions for timestamped frames")
         start = time.perf_counter()
         for path, _ in tqdm(ts_frames_paths):
-            caption = florence.get_video_caption(image_path=path, prompt="<CAPTION>")
-            caption_texts.append((caption, path))
-        end = time.perf_counter()
-        logger.info(
-            f"Caption generation completed for {len(ts_frames_paths)} frames in {end - start:.4f} seconds"
-        )
-
-        logger.info("Generating captions for interval frames")
-        start = time.perf_counter()
-        for path in tqdm(ts_frames_paths):
             caption = florence.get_video_caption(image_path=path, prompt="<CAPTION>")
             caption_texts.append((caption, path))
         end = time.perf_counter()
@@ -110,7 +103,8 @@ def main():
     )
 
     extract_audio(ffmpeg, whisper, collection)
-    extract_frames(ffmpeg, collection)
+    frames = extract_frames(ffmpeg, collection)
+    caption_frames(florence, collection, frames)
 
     logger.info("All steps completed successfully")
 
@@ -118,20 +112,9 @@ def main():
 
     img_res, text_res = collection.search(query=query)
 
+    # TODO: Add better printing of results
     pp(img_res)
     pp(text_res)
-
-    # print(
-    #     text_res["ids"][0],
-    #     text_res["documents"][0],
-    #     text_res["metadatas"][0],
-    # )
-    #
-    # print(
-    #     img_res["ids"][0],
-    #     img_res["uris"][0],
-    #     img_res["metadatas"][0],
-    # )
 
 
 if __name__ == "__main__":
